@@ -1,14 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import Grid from "./components/Grid";
 import InputBar from "./components/InputBar";
 
-const WORD_LENGTH = 5;
+const WORDS = [
+  "CAT",
+  "HOUSE",
+  "APPLE",
+  "REACT",
+  "GUITAR",
+  "MIRROR",
+  "BANANA",
+  "JUMPING",
+  "KITCHEN",
+  "SUNLIGHT",
+];
+
+const getRandomWord = () => WORDS[Math.floor(Math.random() * WORDS.length)];
+
 const MAX_ATTEMPTS = 6;
-const SECRET_WORD = "REACT"; // Replace with a dynamic word generator for production.
 const INITIAL_TIME = 60; // 60 seconds to guess.
 
 const App = () => {
+  const [secretWord, setSecretWord] = useState(getRandomWord());
+  const [wordLength, setWordLength] = useState(secretWord.length);
   const [guesses, setGuesses] = useState(Array(MAX_ATTEMPTS).fill(""));
   const [currentGuess, setCurrentGuess] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -16,20 +39,28 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [score, setScore] = useState(0);
 
-  // Timer Effect
+  useEffect(() => {
+    setWordLength(secretWord.length);
+    setGuesses(Array(MAX_ATTEMPTS).fill(""));
+    setCurrentGuess("");
+    setAttempt(0);
+    setGameOver(false);
+    setTimeLeft(INITIAL_TIME);
+  }, [secretWord]);
+
   useEffect(() => {
     if (timeLeft > 0 && !gameOver) {
       const timer = setInterval(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearInterval(timer); // Clear timer on component unmount or game over.
+      return () => clearInterval(timer);
     } else if (timeLeft === 0) {
       setGameOver(true);
-      Alert.alert("Time's Up!", `The word was ${SECRET_WORD}.`);
+      Alert.alert("Time's Up!", `The word was ${secretWord}.`);
     }
   }, [timeLeft, gameOver]);
 
   const handleGuess = () => {
-    if (currentGuess.length !== WORD_LENGTH) {
-      Alert.alert("Invalid Guess", `Your guess must be ${WORD_LENGTH} letters.`);
+    if (currentGuess.length !== wordLength) {
+      Alert.alert("Invalid Guess", `Your guess must be ${wordLength} letters.`);
       return;
     }
 
@@ -37,13 +68,13 @@ const App = () => {
     updatedGuesses[attempt] = currentGuess.toUpperCase();
     setGuesses(updatedGuesses);
 
-    if (currentGuess.toUpperCase() === SECRET_WORD) {
-      const points = 100 + timeLeft * 2; // Bonus points for faster completion.
+    if (currentGuess.toUpperCase() === secretWord) {
+      const points = 100 + timeLeft * 2;
       setScore(score + points);
       Alert.alert("Congratulations!", `You guessed the word! +${points} points`);
       setGameOver(true);
     } else if (attempt + 1 === MAX_ATTEMPTS) {
-      Alert.alert("Game Over", `The word was ${SECRET_WORD}.`);
+      Alert.alert("Game Over", `The word was ${secretWord}.`);
       setGameOver(true);
     }
 
@@ -51,23 +82,44 @@ const App = () => {
     setAttempt(attempt + 1);
   };
 
+  const restartGame = () => {
+    setSecretWord(getRandomWord());
+    setGuesses(Array(MAX_ATTEMPTS).fill(""));
+    setCurrentGuess("");
+    setAttempt(0);
+    setGameOver(false);
+    setTimeLeft(INITIAL_TIME);
+    setScore(0);
+  };
+
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <Text style={styles.title}>Wordle Game</Text>
       <View style={styles.info}>
         <Text style={styles.timer}>Time Left: {timeLeft}s</Text>
         <Text style={styles.score}>Score: {score}</Text>
       </View>
-      <Grid guesses={guesses} secretWord={SECRET_WORD} attempt={attempt} />
+      <Grid guesses={guesses} secretWord={secretWord} attempt={attempt} />
       {!gameOver && (
         <InputBar
           currentGuess={currentGuess}
           setCurrentGuess={setCurrentGuess}
           handleGuess={handleGuess}
-          maxLength={WORD_LENGTH}
+          maxLength={wordLength}
         />
       )}
-    </View>
+      {gameOver && (
+        <Text style={styles.result}>
+          The word was "{secretWord}". Tap restart to play again!
+        </Text>
+      )}
+      <TouchableOpacity style={styles.restartButton} onPress={restartGame}>
+        <Text style={styles.restartButtonText}>Restart the Game</Text>
+      </TouchableOpacity>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -100,6 +152,23 @@ const styles = StyleSheet.create({
   score: {
     fontSize: 18,
     color: "#fff",
+    fontWeight: "bold",
+  },
+  result: {
+    fontSize: 18,
+    color: "#f00",
+    marginVertical: 20,
+    textAlign: "center",
+  },
+  restartButton: {
+    backgroundColor: "#6aaa64",
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  restartButtonText: {
+    color: "#fff",
+    fontSize: 18,
     fontWeight: "bold",
   },
 });
