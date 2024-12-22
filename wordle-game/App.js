@@ -38,8 +38,12 @@ const App = () => {
   const [gameOver, setGameOver] = useState(false);
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
   const [score, setScore] = useState(0);
+  const [hintWords, setHintWords] = useState([]);
 
   useEffect(() => {
+    const filteredWords = WORDS.filter((word) => word.length === secretWord.length);
+    const randomHints = getRandomHintWords(filteredWords, secretWord, 3);
+    setHintWords(randomHints);
     setWordLength(secretWord.length);
     setGuesses(Array(MAX_ATTEMPTS).fill(""));
     setCurrentGuess("");
@@ -92,6 +96,15 @@ const App = () => {
     setScore(0);
   };
 
+  const getRandomHintWords = (words, secret, count) => {
+    const hintSet = new Set([secret]);
+    while (hintSet.size < count) {
+      const randomWord = words[Math.floor(Math.random() * words.length)];
+      hintSet.add(randomWord);
+    }
+    return Array.from(hintSet).sort(() => Math.random() - 0.5);
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -103,6 +116,14 @@ const App = () => {
         <Text style={styles.score}>Score: {score}</Text>
       </View>
       <Grid guesses={guesses} secretWord={secretWord} attempt={attempt} />
+      <Text style={styles.hintTitle}>Hint Words:</Text>
+      <View style={styles.hintContainer}>
+        {hintWords.map((word, index) => (
+          <Text key={index} style={styles.hintWord}>
+            {word}
+          </Text>
+        ))}
+      </View>
       {!gameOver && (
         <InputBar
           currentGuess={currentGuess}
@@ -153,6 +174,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#fff",
     fontWeight: "bold",
+  },
+  hintTitle: {
+    fontSize: 20,
+    color: "#6aaa64",
+    marginBottom: 5,
+    fontWeight: "bold",
+  },
+  hintContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    marginBottom: 20,
+  },
+  hintWord: {
+    fontSize: 18,
+    color: "#fff",
+    marginHorizontal: 5,
+    backgroundColor: "#3a3a3c",
+    padding: 5,
+    borderRadius: 5,
+    textAlign: "center",
   },
   result: {
     fontSize: 18,
